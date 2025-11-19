@@ -1,0 +1,59 @@
+import os
+import sys
+import platform
+from pathlib import Path
+
+# 1. Load values injected by Copier (or use environment variables if preferred)
+# Note: Copier renders the template *before* running tasks, so we can't 
+# easily read the YAML directly without a parser. 
+# TRICK: We let Copier render this specific file with the variables first.
+# Alternatively, rely on the file 'GEMINI.md' existing in the current (root) dir.
+
+def create_symlink():
+    # The source is ALWAYS the GEMINI.md in the generated project root
+    source_file = Path.cwd() / "GEMINI.md"
+    
+    # We need to retrieve the vault path. 
+    # In a real Copier setup, it is cleaner to render this value into a temporary 
+    # config file or rely on Copier rendering this python script itself.
+    # For this example, assume this script was rendered by Copier:
+    vault_path_str = "{{ obsidian_vault_path }}"  # Copier will replace this!
+    
+    if not vault_path_str:
+        print("ℹ️  No Obsidian Vault path provided. Skipping symlink.")
+        return
+
+    vault_path = Path(vault_path_str)
+    if not vault_path.exists():
+        print(f"⚠️  Vault path not found: {vault_path}. Skipping.")
+        return
+
+    # The destination is a file inside the Vault
+    link_name = f"{{ project_name }}_Context.md" # e.g., "MyProject_Context.md"
+    destination_link = vault_path / link_name
+
+    # 2. Cross-Platform Symlink Logic
+    try:
+        # Remove existing link/file if it exists to avoid errors
+        if destination_link.exists() or destination_link.is_symlink():
+            destination_link.unlink()
+
+        os.symlink(source_file, destination_link)
+        print(f"✅ Successfully linked context to Obsidian: {destination_link}")
+
+    except OSError as e:
+        # 3. Windows Specific Error Handling
+        if platform.system() == "Windows" and e.winerror == 1314:
+            print("\n🛑 WINDOWS PERMISSION ERROR")
+            print("   Windows requires 'Developer Mode' to create symlinks without Admin rights.")
+            print("   ACTION: Enable Developer Mode in Windows Settings -> Update & Security -> For developers.")
+            print("   OR: Run this terminal as Administrator.\n")
+        else:
+            print(f"❌ Failed to create symlink: {e}")
+
+if __name__ == "__main__":
+    # Ensure we are in the project root (Copier runs tasks inside the dst_path)
+    if not Path("GEMINI.md").exists():
+        print("⚠️  GEMINI.md not found. Cannot link context.")
+    else:
+        create_symlink()

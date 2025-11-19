@@ -1,0 +1,22 @@
+project_name:
+  type: str
+  help: "What is the project name?"
+
+project_goal:
+  type: str
+  help: "One sentence describing the primary goal."
+
+tech_stack:
+  type: str
+  help: "Primary languages and frameworks (e.g., Python, FastAPI, Jetson)."
+  default: "Python, FastAPI"
+
+# 2. Define the Context File Template
+_templates_suffix: .jinja
+
+_exclude:
+  - "hooks/*"
+  - "copier.yml"
+  - ".git"
+  - ".gitignore"
+  - ".github"
