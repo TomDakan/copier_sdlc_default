@@ -1,0 +1,102 @@
+project_name:
+  type: str
+  help: "What is the project name?"
+
+author_name:
+  type: str
+  help: "Author Name"
+  default: "Tom Dakan"
+
+version:
+  type: str
+  help: "Initial Version"
+  default: "0.1.0"
+
+hardware_target:
+  type: str
+  help: "Target Hardware (e.g., Jetson Orin Nano, AGX Orin, x86)"
+  default: "Jetson Orin Nano"
+
+architecture:
+  type: str
+  help: "Project Architecture"
+  choices:
+    - "Monolith"
+    - "Microservices"
+    - "CLI Tool"
+    - "Library"
+  default: "Monolith"
+
+ipc_method:
+  type: str
+  help: "IPC Method"
+  default: "ZMQ"
+  when: "{{ architecture == 'Microservices' }}"
+
+obsidian_vault_path:
+  type: str
+  help: "Absolute path to your Obsidian Vault (leave empty to use OBSIDIAN_VAULT_PATH env var or skip)"
+  default: ""
+
+include_hardware_docs:
+  type: bool
+  help: "Include Hardware Documentation?"
+  default: true
+
+include_compliance_docs:
+  type: bool
+  help: "Include Compliance & Meta Documentation?"
+  default: false
+
+include_legal_docs:
+  type: bool
+  help: "Include Legal Documentation?"
+  default: true
+
+include_qa_docs:
+  type: bool
+  help: "Include QA & Testing Documentation?"
+  default: true
+
+# Meta / Governance
+include_coc:
+  type: bool
+  help: "Include Code of Conduct?"
+  default: true
+
+include_security:
+  type: bool
+  help: "Include Security Policy?"
+  default: true
+
+include_citation:
+  type: bool
+  help: "Include CITATION.cff?"
+  default: true
+
+license:
+  type: str
+  help: "Select a License"
+  choices:
+    - "MIT"
+    - "Apache-2.0"
+    - "GPL-3.0"
+    - "None"
+  default: "MIT"
+
+# Agent Optimizations
+include_agent_guides:
+  type: bool
+  help: "Include AI Agent Guides (task.md, CONTRIBUTING.md)?"
+  default: true
+
+_subdirectory: template
+
+_tasks:
+  - "python hooks/link_context.py"
+
+_templates_suffix: .jinja
+_exclude:
+  - "copier.yml"
+  - ".git"
+  - ".github"

@@ -1,0 +1,30 @@
+# GEMINI.md - Context & Architecture
+
+> [!IMPORTANT]
+> **CRITICAL INSTRUCTION FOR LLMS:**
+> This file contains the GROUND TRUTH for this project's architecture and context.
+> You MUST read this file before making any structural changes or answering architectural questions.
+> If you are unsure about a pattern, refer to the "Architecture" section below.
+
+## Project Identity
+- **Project Name:** {{ project_name }}
+- **Hardware Target:** {{ hardware_target }}
+- **Architecture:** {{ architecture }}
+{% if architecture == 'Microservices' %}
+- **IPC Method:** {{ ipc_method }}
+{% endif %}
+
+## Overview
+This project aims to... (TODO: Add goal)
+
+## Architecture
+This project follows a **{{ architecture }}** pattern.
+
+{% if architecture == 'Microservices' %}
+### Communication
+Services communicate via **{{ ipc_method }}**.
+{% endif %}
+
+## Development Guidelines
+1. **Docs-as-Code:** Update this file when architectural decisions change.
+2. **Hardware Constraints:** Respect the limitations of {{ hardware_target }}.

@@ -1,59 +1,78 @@
 import os
 import sys
-import platform
-from pathlib import Path
+import pathlib
+import shutil
 
-# 1. Load values injected by Copier (or use environment variables if preferred)
-# Note: Copier renders the template *before* running tasks, so we can't 
-# easily read the YAML directly without a parser. 
-# TRICK: We let Copier render this specific file with the variables first.
-# Alternatively, rely on the file 'GEMINI.md' existing in the current (root) dir.
-
-def create_symlink():
-    # The source is ALWAYS the GEMINI.md in the generated project root
-    source_file = Path.cwd() / "GEMINI.md"
+def link_context():
+    """
+    Symlinks the generated GEMINI.md to the user's Obsidian Vault.
+    """
+    # Get the vault path from Copier answer
+    obsidian_vault_path = r"{{ obsidian_vault_path }}"
+    project_name = "{{ project_name }}"
     
-    # We need to retrieve the vault path. 
-    # In a real Copier setup, it is cleaner to render this value into a temporary 
-    # config file or rely on Copier rendering this python script itself.
-    # For this example, assume this script was rendered by Copier:
-    vault_path_str = "{{ obsidian_vault_path }}"  # Copier will replace this!
-    
-    if not vault_path_str:
-        print("ℹ️  No Obsidian Vault path provided. Skipping symlink.")
-        return
-
-    vault_path = Path(vault_path_str)
-    if not vault_path.exists():
-        print(f"⚠️  Vault path not found: {vault_path}. Skipping.")
-        return
-
-    # The destination is a file inside the Vault
-    link_name = f"{{ project_name }}_Context.md" # e.g., "MyProject_Context.md"
-    destination_link = vault_path / link_name
-
-    # 2. Cross-Platform Symlink Logic
+    # DEBUG: Write to log
     try:
-        # Remove existing link/file if it exists to avoid errors
-        if destination_link.exists() or destination_link.is_symlink():
-            destination_link.unlink()
+        with open("hook_debug.log", "w") as f:
+            f.write(f"Jinja Path: '{obsidian_vault_path}'\n")
+            f.write(f"Env Var: '{os.environ.get('OBSIDIAN_VAULT_PATH')}'\n")
+    except Exception as e:
+        print(f"Failed to write debug log: {e}")
 
-        os.symlink(source_file, destination_link)
-        print(f"✅ Successfully linked context to Obsidian: {destination_link}")
+    # Fallback: Check environment variable if not provided
+    if not obsidian_vault_path:
+        obsidian_vault_path = os.environ.get("OBSIDIAN_VAULT_PATH")
+        if obsidian_vault_path:
+            print(f"Using OBSIDIAN_VAULT_PATH from environment: {obsidian_vault_path}")
 
-    except OSError as e:
-        # 3. Windows Specific Error Handling
-        if platform.system() == "Windows" and e.winerror == 1314:
-            print("\n🛑 WINDOWS PERMISSION ERROR")
-            print("   Windows requires 'Developer Mode' to create symlinks without Admin rights.")
-            print("   ACTION: Enable Developer Mode in Windows Settings -> Update & Security -> For developers.")
-            print("   OR: Run this terminal as Administrator.\n")
+    if not obsidian_vault_path:
+        print("Skipping Obsidian link: No vault path provided (and OBSIDIAN_VAULT_PATH not set).")
+        # Still perform cleanup even if we skip linking
+        cleanup_hooks()
+        return
+
+    vault_path = pathlib.Path(obsidian_vault_path)
+    if not vault_path.exists():
+        print(f"Warning: Obsidian vault path does not exist: {vault_path}")
+        cleanup_hooks()
+        return
+
+    # Target: The GEMINI.md file in the generated project
+    target_file = pathlib.Path("GEMINI.md").resolve()
+    
+    # Link Name: inside the vault. 
+    link_name = vault_path / f"{project_name}_GEMINI.md"
+    
+    try:
+        if link_name.exists():
+            print(f"Link already exists: {link_name}")
         else:
-            print(f"❌ Failed to create symlink: {e}")
+            # On Windows, symlinks require admin privileges or Developer Mode.
+            os.symlink(target_file, link_name)
+            print(f"Successfully linked {target_file} to {link_name}")
+        
+    except OSError as e:
+        # Handle Windows specific error for privileges
+        if getattr(e, 'winerror', None) == 1314:
+            print("\n" + "!"*60)
+            print("WARNING: Could not create symlink due to missing privileges.")
+            print("Windows requires 'Developer Mode' enabled or Admin rights to create symlinks.")
+            print("To enable Developer Mode: Settings -> Update & Security -> For developers")
+            print("!"*60 + "\n")
+        else:
+            print(f"Failed to create symlink: {e}")
+    
+    cleanup_hooks()
+
+def cleanup_hooks():
+    # Cleanup: Remove the hooks directory
+    try:
+        hooks_dir = pathlib.Path("hooks")
+        if hooks_dir.exists():
+            shutil.rmtree(hooks_dir)
+            print("Cleaned up hooks directory.")
+    except Exception as e:
+        print(f"Warning: Failed to cleanup hooks directory: {e}")
 
 if __name__ == "__main__":
-    # Ensure we are in the project root (Copier runs tasks inside the dst_path)
-    if not Path("GEMINI.md").exists():
-        print("⚠️  GEMINI.md not found. Cannot link context.")
-    else:
-        create_symlink()
+    link_context()
